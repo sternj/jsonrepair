@@ -49,6 +49,12 @@ const controlCharacters: { [key: string]: string } = {
   '\r': '\\r',
   '\t': '\\t'
 }
+function escapeNonPrintableChars(str: string): string {
+  return str.replace(/[\x00-\x1F\x7F-\x9F]/g, (char: string) => {
+      const hexCode = char.charCodeAt(0).toString(16).padStart(2, '0');
+      return `\\x${hexCode.toUpperCase()}`;
+  });
+}
 
 // map with all escape characters
 const escapeCharacters: { [key: string]: string } = {
@@ -76,7 +82,7 @@ export interface JsonRepairCore {
 
 export function jsonrepairCore({
   onData,
-  bufferSize = 65536,
+  bufferSize = 65536 * 2,
   chunkSize = 65536
 }: JsonRepairCoreOptions): JsonRepairCore {
   const input = createInputBuffer()
@@ -349,6 +355,7 @@ export function jsonrepairCore({
   function parseObjectKey(): boolean {
     const parsedKey = parseString() || parseUnquotedKey()
     if (parsedKey) {
+      skip_until_colon()
       parseWhitespaceAndSkipComments()
 
       if (parseCharacter(codeColon)) {
@@ -488,6 +495,7 @@ export function jsonrepairCore({
     }
 
     if (!input.isEnd(i)) {
+      output.flush()
       throwUnexpectedCharacter()
     }
 
@@ -506,6 +514,15 @@ export function jsonrepairCore({
     } while (changed)
 
     return i > start
+  }
+
+  function skip_until_colon() {
+    while ( ! input.isEnd(i) && input.charCodeAt(i) !== codeColon ) {
+      i++
+    }
+    if (input.isEnd(i)) {
+      throwColonExpected()
+    }
   }
 
   function parseWhitespace(): boolean {
@@ -688,15 +705,15 @@ export function jsonrepairCore({
             return stack.update(Caret.afterValue)
           }
 
-          if (isDelimiter(input.charAt(prevNonWhitespaceIndex(iQuote - 1)))) {
-            // This is not the right end quote: it is preceded by a delimiter,
-            // and NOT followed by a delimiter. So, there is an end quote missing
-            // parse the string again and then stop at the first next delimiter
-            i = iBefore
-            output.remove(oBefore)
+          // if (isDelimiter(input.charAt(prevNonWhitespaceIndex(iQuote - 1)))) {
+          //   // This is not the right end quote: it is preceded by a delimiter,
+          //   // and NOT followed by a delimiter. So, there is an end quote missing
+          //   // parse the string again and then stop at the first next delimiter
+          //   i = iBefore
+          //   output.remove(oBefore)
 
-            return parseString(true)
-          }
+          //   return parseString(true)
+          // }
 
           // revert to right after the quote but before any whitespace, and continue parsing the string
           output.remove(oQuote + 1)
@@ -768,10 +785,14 @@ export function jsonrepairCore({
             i++
           } else {
             if (!isValidStringCharacter(code)) {
-              throwInvalidCharacter(char)
-            }
+              // output.push(escapeNonPrintableChars(char))
+              i++
+              
+              // throwInvalidCharacter(char)
+            } else {
             output.push(char)
             i++
+            }
           }
         }
 

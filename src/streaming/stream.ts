@@ -18,7 +18,8 @@ export function jsonrepairTransform(options?: JsonRepairTransformOptions): Trans
       try {
         repair.transform(chunk.toString())
       } catch (err) {
-        this.emit('error', err)
+        console.log(err.stack)
+        this.emit('error', err.stack)
       } finally {
         callback()
       }
@@ -29,6 +30,8 @@ export function jsonrepairTransform(options?: JsonRepairTransformOptions): Trans
         repair.flush()
       } catch (err) {
         this.emit('error', err)
+        console.log(err.stack)
+        this.emit('error', err.stack)
       } finally {
         callback()
       }

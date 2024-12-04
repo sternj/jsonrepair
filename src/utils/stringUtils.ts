@@ -55,7 +55,12 @@ export function isDigit(code: number): boolean {
 }
 
 export function isValidStringCharacter(code: number): boolean {
-  return code >= 0x20 && code <= 0x10ffff
+  const isControlCharacter = 
+  (code >= 0x00 && code <= 0x1F) || 
+  code === 0x7F || 
+  (code >= 0x80 && code <= 0x9F) || 
+  code === 0xFFFD;
+  return code >= 0x20 && code <= 0x10ffff && !isControlCharacter
 }
 
 export function isDelimiter(char: string): boolean {
