@@ -141,6 +141,7 @@ export function jsonrepairCore({
           case Caret.beforeValue:
             return parseValue() || parseRepairMissingObjectValue()
           case Caret.afterValue:
+            skip_until_comma()
             return parseObjectComma() || parseObjectEnd() || parseRepairObjectEndOrComma()
           default:
             return false
@@ -525,6 +526,14 @@ export function jsonrepairCore({
     }
   }
 
+  function skip_until_comma() {
+    while ( ! input.isEnd(i) && input.charCodeAt(i) !== codeComma && input.charCodeAt(i) !== codeClosingBrace && input.charCodeAt(i) !== codeClosingBracket ) {
+      i++
+    }
+    if (input.isEnd(i)) {
+      throwUnexpectedEnd()
+    }
+  }
   function parseWhitespace(): boolean {
     let whitespace = ''
     let normal: boolean
